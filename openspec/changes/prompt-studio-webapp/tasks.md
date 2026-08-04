@@ -27,27 +27,27 @@ Chain strategy: pending
 
 ## Phase 1: Scaffold & Workspaces (Foundation)
 
-- [ ] 1.1 **Scaffold monorepo + git init + enable strict TDD** — create root `package.json` (workspaces `["apps/*","packages/*"]`, scripts dev/build/test/lint/typecheck, `engine >=22`), `tsconfig.base.json` (strict, paths `@promptstudio/shared`), `.gitignore`, `.env.example`; `git init`; set `openspec/config.yaml` `testing.strict_tdd: true`, `test_command: "npm test"`; `npm install`; initial commit (openspec + scaffold).
+- [x] 1.1 **Scaffold monorepo + git init + enable strict TDD** — create root `package.json` (workspaces `["apps/*","packages/*"]`, scripts dev/build/test/lint/typecheck, `engine >=22`), `tsconfig.base.json` (strict, paths `@promptstudio/shared`), `.gitignore`, `.env.example`; `git init`; set `openspec/config.yaml` `testing.strict_tdd: true`, `test_command: "npm test"`; `npm install`; initial commit (openspec + scaffold).
   AC: `npm install` succeeds; `git log` shows initial commit; `npm test` runs vitest with 0 tests; config.yaml tdd=true. Deps: none. Est: 120. **[TDD enable]**
 
-- [ ] 1.2 **packages/shared types + DTOs** — `packages/shared/package.json` (source-only, no build) + `src/types.ts` (Run/Params/RunStatus/ImageRow/ChatMessage), `src/dto.ts`; wire tsconfig paths alias.
+- [x] 1.2 **packages/shared types + DTOs** — `packages/shared/package.json` (source-only, no build) + `src/types.ts` (Run/Params/RunStatus/ImageRow/ChatMessage), `src/dto.ts`; wire tsconfig paths alias.
   AC: `npm run typecheck` passes with `@promptstudio/shared` imported from apps/server. Deps: 1.1. Est: 120.
 
-- [ ] 1.3 **Shared logic, TEST-FIRST** — RED tests for `aspectToSize` (5 presets, 1024 long side: 4:5→1024×1280, 16:9→1024×576, 9:16→576×1024), `detectFinalPrompt` (Spanish question→false, English paragraph→true, passthrough→true), `validation` (variations 1–8, empty prompt); then implement `aspect.ts`, `detectFinalPrompt.ts`, `validation.ts` to green.
+- [x] 1.3 **Shared logic, TEST-FIRST** — RED tests for `aspectToSize` (5 presets, 1024 long side: 4:5→1024×1280, 16:9→1024×576, 9:16→576×1024), `detectFinalPrompt` (Spanish question→false, English paragraph→true, passthrough→true), `validation` (variations 1–8, empty prompt); then implement `aspect.ts`, `detectFinalPrompt.ts`, `validation.ts` to green.
   AC: `npx vitest run shared` green. Deps: 1.2. Est: 150.
 
 ## Phase 2: Converter + Golden (comfyui-integration)
 
-- [ ] 2.1 **Template asset pipeline** — `scripts/copy-template.mjs` copies `testeo comfyui/workflow_fotorealista_qwen.json` → `assets/workflows/` byte-identical (never edited in place); create `assets/fixtures/`; record SHA-256.
+- [x] 2.1 **Template asset pipeline** — `scripts/copy-template.mjs` copies `testeo comfyui/workflow_fotorealista_qwen.json` → `assets/workflows/` byte-identical (never edited in place); create `assets/fixtures/`; record SHA-256.
   AC: byte-compare source vs copy passes; script idempotent. Deps: 1.1. Est: 40.
 
-- [ ] 2.2 **Converter golden RED tests** — `converter.test.ts`: deep-equal vs committed `assets/fixtures/fotorealista.api.golden.json` for canonical opts (golden test); immutability (template byte-identical after convert); `ConversionError` on unknown dropped-source link; muted/img2img nodes 5 & 16–26 absent; upscale 12–15 kept. (RED before implementation.)
+- [x] 2.2 **Converter golden RED tests** — `converter.test.ts`: deep-equal vs committed `assets/fixtures/fotorealista.api.golden.json` for canonical opts (golden test); immutability (template byte-identical after convert); `ConversionError` on unknown dropped-source link; muted/img2img nodes 5 & 16–26 absent; upscale 12–15 kept. (RED before implementation.)
   AC: tests fail with no converter. Deps: 2.1, 1.3. Est: 90. **[TEST-FIRST]**
 
-- [ ] 2.3 **Implement `apps/server/src/services/converter.ts`** — pure `convert(template, opts)`: index nodes/links; drop `mode!=0`, `Note`, node 5; link→`[srcId,slot]` refs (dropped-source = injection point, else throw); `WIDGET_NAMES` table (UnetLoaderGGUF, ModelSamplingAuraFlow, CLIPLoader, VAELoader, CLIPTextEncode, EmptySD3LatentImage, KSampler, SaveImage, ImageScale); inject node 6 `text`=finalPrompt, node 7 fixed negative, node 8 width/height/batch, node 9 seed/steps/cfg/sampler/scheduler/denoise; flat `{"1":{class_type,inputs}}`; optional img2img keeps 16–26 + upload filename; regenerate golden only with `-u` after review.
+- [x] 2.3 **Implement `apps/server/src/services/converter.ts`** — pure `convert(template, opts)`: index nodes/links; drop `mode!=0`, `Note`, node 5; link→`[srcId,slot]` refs (dropped-source = injection point, else throw); `WIDGET_NAMES` table (UnetLoaderGGUF, ModelSamplingAuraFlow, CLIPLoader, VAELoader, CLIPTextEncode, EmptySD3LatentImage, KSampler, SaveImage, ImageScale); inject node 6 `text`=finalPrompt, node 7 fixed negative, node 8 width/height/batch, node 9 seed/steps/cfg/sampler/scheduler/denoise; flat `{"1":{class_type,inputs}}`; optional img2img keeps 16–26 + upload filename; regenerate golden only with `-u` after review.
   AC: `npx vitest run converter` green (2.2 passes). Deps: 2.2. Est: 260.
 
-- [ ] 2.4 **WIDGET_NAMES verification script** — `apps/server/src/scripts/verifyAgainstObjectInfo.ts` cross-checks class/required-input table vs live `GET /object_info` (manual, ComfyUI may be offline in CI).
+- [x] 2.4 **WIDGET_NAMES verification script** — `apps/server/src/scripts/verifyAgainstObjectInfo.ts` cross-checks class/required-input table vs live `GET /object_info` (manual, ComfyUI may be offline in CI).
   AC: run vs live ComfyUI 0.29.2 reports match or explicit diffs. Deps: 2.3. Est: 60.
 
 ## Phase 3: Comfy Client + Orchestrator
