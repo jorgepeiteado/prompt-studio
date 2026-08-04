@@ -1,0 +1,45 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Project: testeo_arneses / "testeo comfyui" — new standalone webapp (pre-scaffold)
+  Working dir: C:\Users\Jorge\Desktop\DEV\testeo_arneses\testeo comfyui (NOT a git repo)
+  Planned app: prompt-design webapp — interview flow, local Qwen3-4B LLM assistant
+    (director-fotografico pattern), direct submission to local ComfyUI
+    (127.0.0.1:8188), local history
+  Existing assets: workflow_fotorealista_qwen.json (28-node Qwen-Image workflow),
+    .atl/skill-registry.md. NOTE: todolodecomfy.txt (ComfyUI listing dump) vanished
+    during sdd-init on 2026-08-04 — treat as unavailable
+  Stack (parent conventions): TypeScript + npm; vitest declared in parent AGENTS.md
+    but NOT installed; no package.json in working dir yet
+  ComfyUI: portable install at C:\Program Files\ComfyUI_windows_portable; server
+    reachable on port 8188; comfyui-mcp server connected (151 tools)
+
+testing:
+  strict_tdd: false    # no test runner in working dir yet — enable when the scaffold lands
+  test_command: ""
+  capabilities_ref: sdd/testeo_arneses/testing-capabilities (engram) — full matrix
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
