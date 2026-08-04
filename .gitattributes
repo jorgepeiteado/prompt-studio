@@ -1,0 +1,5 @@
+# Template and golden assets are byte-identical fixtures (LF source file).
+# `-text` disables git EOL conversion (core.autocrlf) so checked-out bytes
+# always match the committed bytes — required for SHA-256 immutability checks.
+assets/workflows/** -text
+assets/fixtures/** -text

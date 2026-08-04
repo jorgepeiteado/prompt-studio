@@ -1,0 +1,10 @@
+{
+  "name": "@promptstudio/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prompt Studio backend — ComfyUI proxy, converter, LLM runtime, history",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts"
+  }
+}

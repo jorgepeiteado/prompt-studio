@@ -1,0 +1,7 @@
+{
+  "name": "@promptstudio/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prompt Studio frontend — React + Vite + Tailwind (scaffolded in PR 3)"
+}

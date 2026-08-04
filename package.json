@@ -1,0 +1,37 @@
+{
+  "name": "prompt-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prompt Studio — local AI prompt designer for ComfyUI",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev --workspace @promptstudio/server",
+    "dev:web": "npm run dev --workspace @promptstudio/web",
+    "build": "npm run typecheck",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint . --quiet",
+    "typecheck": "tsc --noEmit",
+    "copy:template": "node scripts/copy-template.mjs",
+    "update:golden": "tsx scripts/update-golden.ts -u",
+    "verify:object-info": "tsx apps/server/src/scripts/verifyAgainstObjectInfo.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^3.0.4"
+  }
+}

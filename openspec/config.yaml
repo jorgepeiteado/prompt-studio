@@ -16,8 +16,8 @@ context: |
     reachable on port 8188; comfyui-mcp server connected (151 tools)
 
 testing:
-  strict_tdd: false    # no test runner in working dir yet — enable when the scaffold lands
-  test_command: ""
+  strict_tdd: true     # vitest installed at scaffold (task 1.1) — RED→GREEN→REFACTOR active
+  test_command: "npm test"
   capabilities_ref: sdd/testeo_arneses/testing-capabilities (engram) — full matrix
 
 rules:
@@ -35,11 +35,11 @@ rules:
   apply:
     guidelines:
       - Follow existing code patterns
-    tdd: false
-    test_command: ""
+    tdd: true
+    test_command: "npm test"
   verify:
-    test_command: ""
-    build_command: ""
+    test_command: "npm test"
+    build_command: "npm run typecheck"
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas
