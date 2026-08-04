@@ -8,7 +8,10 @@
   "2": {
     "class_type": "ModelSamplingAuraFlow",
     "inputs": {
-      "model": ["1", 0],
+      "model": [
+        "1",
+        0
+      ],
       "shift": 3.1
     }
   },
@@ -29,14 +32,20 @@
   "6": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "clip": ["3", 0],
+      "clip": [
+        "3",
+        0
+      ],
       "text": "golden test prompt"
     }
   },
   "7": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "clip": ["3", 0],
+      "clip": [
+        "3",
+        0
+      ],
       "text": "plastic skin, porcelain skin, airbrushed, waxy skin, smooth flawless skin, cgi, 3d render, digital art, illustration, cartoon, anime, painting, drawing, oversaturated, overexposed, beauty filter, heavy makeup, doll-like, mannequin, plastic hair, uncanny valley, deformed hands, extra fingers, missing fingers, watermark, text, logo, signature, jpeg artifacts, blurry, low quality"
     }
   },
@@ -51,10 +60,22 @@
   "9": {
     "class_type": "KSampler",
     "inputs": {
-      "model": ["2", 0],
-      "positive": ["6", 0],
-      "negative": ["7", 0],
-      "latent_image": ["8", 0],
+      "model": [
+        "2",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "8",
+        0
+      ],
       "seed": 12345,
       "steps": 20,
       "cfg": 2.5,
@@ -66,14 +87,23 @@
   "10": {
     "class_type": "VAEDecode",
     "inputs": {
-      "samples": ["9", 0],
-      "vae": ["4", 0]
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
     }
   },
   "11": {
     "class_type": "SaveImage",
     "inputs": {
-      "images": ["10", 0],
+      "images": [
+        "10",
+        0
+      ],
       "filename_prefix": "qwen_txt"
     }
   },
@@ -86,14 +116,23 @@
   "13": {
     "class_type": "ImageUpscaleWithModel",
     "inputs": {
-      "upscale_model": ["12", 0],
-      "image": ["10", 0]
+      "upscale_model": [
+        "12",
+        0
+      ],
+      "image": [
+        "10",
+        0
+      ]
     }
   },
   "14": {
     "class_type": "ImageScale",
     "inputs": {
-      "image": ["13", 0],
+      "image": [
+        "13",
+        0
+      ],
       "upscale_method": "lanczos",
       "width": 4096,
       "height": 4096,
@@ -103,7 +142,10 @@
   "15": {
     "class_type": "SaveImage",
     "inputs": {
-      "images": ["14", 0],
+      "images": [
+        "14",
+        0
+      ],
       "filename_prefix": "qwen_txt_hd"
     }
   }
