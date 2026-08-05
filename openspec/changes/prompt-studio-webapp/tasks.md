@@ -50,7 +50,7 @@ Chain strategy: pending
 - [x] 2.4 **WIDGET_NAMES verification script** — `apps/server/src/scripts/verifyAgainstObjectInfo.ts` cross-checks class/required-input table vs live `GET /object_info` (manual, ComfyUI may be offline in CI).
   AC: run vs live ComfyUI 0.29.2 reports match or explicit diffs. Deps: 2.3. Est: 60.
 
-- [ ] 2.5 **Upscale optional (OFF by default)** — converter drops branch nodes 12–15 when `opts.upscale === false` (base 1024 `qwen_txt` only); keeps 12–15 and adds HD image (`qwen_txt_hd`) when `opts.upscale === true`; `POST /api/generate` accepts `upscale: boolean` default `false`, recorded in `run.params_json`; with upscale off only `base` image rows are produced. **PR 2 scope** (folded into current PR work).
+- [x] 2.5 **Upscale optional (OFF by default)** — converter drops branch nodes 12–15 when `opts.upscale === false` (base 1024 `qwen_txt` only); keeps 12–15 and adds HD image (`qwen_txt_hd`) when `opts.upscale === true`; `POST /api/generate` accepts `upscale: boolean` default `false`, recorded in `run.params_json`; with upscale off only `base` image rows are produced. **PR 2 scope** (folded into current PR work).
   AC: `npx vitest run converter` green with `upscale:false` golden (no 12–15) and `upscale:true` keeps 12–15; generate route accepts `upscale` default false; no `hd` rows when off. Deps: 2.3. Est: 90.
 
 ## Phase 3: Comfy Client + Orchestrator
