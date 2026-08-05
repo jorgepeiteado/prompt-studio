@@ -13,6 +13,8 @@ export interface GenerateRequestDto {
   aspect?: AspectRatio;
   variations: number;
   img2img?: Img2ImgDto;
+  /** Keep the HD/4K upscale branch; OFF by default. */
+  upscale?: boolean;
 }
 
 /** Optional img2img branch — OFF by default. */

@@ -35,13 +35,15 @@ prompt-studio/
 **Algorithm** (template facts verified from `workflow_fotorealista_qwen.json`, 28 nodes, links `[id, src, srcSlot, dst, dstSlot, type]`):
 1. Load template; index nodes by `id`; build link index.
 2. Drop nodes: `mode !== 0` (img2img 16–26, muted), `type === "Note"` (27–28, frontend-only), `id === 5` (LLMTextProcessor).
-3. Remaining: 1,2,3,4,6,7,8,9,10,11,12,13,14,15 (upscale branch kept).
+3. Drop nodes: `mode !== 0`, `type === "Note"`, `id === 5`. Branch nodes 12–15 (upscale) dropped WHEN `opts.upscale !== true`; else kept.
 4. For each kept node: `class_type = type`; `inputs = {}`. For each entry of node's `inputs` array with a `link`: resolve link → `inputs[name] = [srcId, srcSlot]` **if** srcId is kept; if srcId was dropped, this is an injection point (only case: node 6 `text` ← node 5) — replace with configured value (final prompt) instead of a reference; if any other dropped-source link appears → throw `ConversionError` (deterministic contract, asserts template invariants).
 5. Widgets → inputs: static table `WIDGET_NAMES: Record<classType, string[]>` mapping `widgets_values` order to API input names, dropping non-API entries (`control_after_generate` "randomize"). Required for kept classes: UnetLoaderGGUF `[unet_name]`; ModelSamplingAuraFlow `[shift]`; CLIPLoader `[clip_name, type, device]`; VAELoader `[vae_name]`; CLIPTextEncode `[text]`; EmptySD3LatentImage `[width, height, batch_size]`; KSampler `[seed, steps, cfg, sampler_name, scheduler, denoise]`; SaveImage `[filename_prefix]`; ImageScale `[upscale_method, width, height, crop]`. Linked inputs (clip/model/vae/images/positive/negative/latent_image/samples/upscale_model) are reference-only.
 6. Injection (explicit opts, all overrides template): node 6 `inputs.text = finalPrompt`; node 7 untouched (fixed negative from template widget); node 8 `width/height` from aspect map (or custom) and `batch_size`; node 9 `seed` per variation, `steps/cfg/sampler_name/scheduler/denoise` from params (defaults steps 20, cfg 2.5, euler, simple, denoise 1.0).
 7. Output: flat `{ "1": {class_type, inputs}, ... }` keyed by string node id — the ComfyUI `/prompt` payload.
 
 **img2img (optional, OFF)**: when `img2img.enabled`, converter keeps nodes 16–26 (mode ignored), sets node 16 `image = uploadedFilename`, KSampler 20 keeps template denoise 0.45. Source image uploaded to ComfyUI via its HTTP `POST /upload/image` (standard API, writes only to ComfyUI's user-data input dir — no install modification).
+
+**upscale (optional, OFF)**: `opts.upscale` defaults `false`. When `false`, branch nodes 12–15 (ImageScale → upscale KSampler → CLIPTextEncode `qwen_txt_hd` path) are DROPPED from the output workflow — the run produces only the base 1024 image (SaveImage node 11 `qwen_txt`). When `true`, nodes 12–15 are KEPT as before and the run also produces the HD/4K image (SaveImage node 15 `qwen_txt_hd`). This keeps the `images.kind` column (`base|hd`) schema working: with upscale off only `base` rows are produced; `hd` rows appear only on explicit request. HD remains available on request; a future ReviewView control will trigger it (out of scope here — this change only plumbs the converter/API flag).
 
 **Golden fixture strategy**: fixture = committed `assets/fixtures/fotorealista.api.golden.json` — converter output for canonical opts `{prompt:"golden test prompt", width:1024, height:1024, seed:12345, steps:20, cfg:2.5, batchSize:1}`. Test 1: `convert()` deep-equals golden. Test 2 (immutability): converter never writes; template asset byte-compared to source file when present (`SHA-256` recorded). Regenerate golden with `-u` flag only after deliberate review. Dev-time verification script `apps/server/src/scripts/verifyAgainstObjectInfo.ts` cross-checks `WIDGET_NAMES` against live `/object_info` (manual run; ComfyUI may be offline in CI).
 
@@ -128,7 +130,7 @@ Error convention: JSON `{error: {code, message, details?}}`; codes 400 validatio
 | GET `/api/llm/status` | — | `{ready, port, model, adopted}` |
 | POST `/api/llm/chat` | `{sessionId?, message}` | 200 SSE: `{type:"token",text}`…`{type:"done",full,isFinalPrompt}` / `{type:"error",message}` |
 | GET `/api/llm/chat/:sessionId` | — | `{sessionId, messages}` (capped list; refresh/resume hydration) |
-| POST `/api/generate` | `{prompt, negativePrompt?, seed?, steps, cfg, sampler, scheduler, width, height, aspect?, variations, img2img?}` | 202 `{runId, promptIds}` |
+| POST `/api/generate` | `{prompt, negativePrompt?, seed?, steps, cfg, sampler, scheduler, width, height, aspect?, variations, img2img?, upscale?}` | 202 `{runId, promptIds}` |
 | GET `/api/generate/:runId/events` | — | SSE progress (per variation queued/started/progress/complete + `{type:"image",runId,variationIndex,url}`) |
 | GET `/api/generate/:runId` | — | `{status, images, error?}` (poll fallback + refresh recovery) |
 | DELETE `/api/generate/:runId` | — | 202 `{status:"cancelling"}` (marks run cancelled, stops remaining submissions, WS relay ignores post-cancel events; final state `cancelled`) |

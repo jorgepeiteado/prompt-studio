@@ -47,24 +47,24 @@ describe("converter golden", () => {
 });
 
 describe("converter node selection", () => {
-  it("drops the LLMTextProcessor (5), muted img2img (16-26) and Note nodes (27-28)", () => {
+  it("drops the LLMTextProcessor (id), muted img2img (16-26) and Note nodes (27-28)", () => {
     const output = convert(loadTemplate(), CANONICAL_OPTS);
     for (const dropped of ["5", "16", "17", "20", "22", "26", "27", "28"]) {
       expect(output[dropped]).toBeUndefined();
     }
   });
 
-  it("keeps the txt2img and upscale branch (1,2,3,4,6,7,8,9,10,11,12,13,14,15)", () => {
+  it("keeps only the txt2img branch (1,2,3,4,6,7,8,9,10,11) when upscale is off (default)", () => {
     const output = convert(loadTemplate(), CANONICAL_OPTS);
-    const kept = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"];
+    const kept = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11"];
     for (const id of kept) {
       expect(output[id]).toBeDefined();
     }
     expect(Object.keys(output)).toHaveLength(kept.length);
   });
 
-  it("keeps the upscale branch classes with template widget values", () => {
-    const output = convert(loadTemplate(), CANONICAL_OPTS);
+  it("keeps the upscale branch classes with template widget values when upscale is on", () => {
+    const output = convert(loadTemplate(), { ...CANONICAL_OPTS, upscale: true });
     expect(output["12"]!.class_type).toBe("UpscaleModelLoader");
     expect(output["12"]!.inputs.model_name).toBe("4x-UltraSharp.pth");
     expect(output["13"]!.class_type).toBe("ImageUpscaleWithModel");
@@ -72,6 +72,35 @@ describe("converter node selection", () => {
     expect(output["14"]!.inputs.upscale_method).toBe("lanczos");
     expect(output["14"]!.inputs.crop).toBe("disabled");
     expect(output["15"]!.inputs.filename_prefix).toBe("qwen_txt_hd");
+  });
+});
+
+describe("converter upscale (optional, off by default)", () => {
+  it("drops the upscale branch nodes 12–15 when upscale is not requested (default false)", () => {
+    const output = convert(loadTemplate(), CANONICAL_OPTS);
+    for (const id of ["12", "13", "14", "15"]) {
+      expect(output[id]).toBeUndefined();
+    }
+    // The base 1024 image (SaveImage 11 qwen_txt) is still the only output.
+    expect(output["11"]).toBeDefined();
+    expect(output["11"]!.inputs.filename_prefix).toBe("qwen_txt");
+    expect(output["15"]).toBeUndefined();
+  });
+
+  it("drops nodes 12–15 when upscale is explicitly false", () => {
+    const output = convert(loadTemplate(), { ...CANONICAL_OPTS, upscale: false });
+    for (const id of ["12", "13", "14", "15"]) {
+      expect(output[id]).toBeUndefined();
+    }
+  });
+
+  it("keeps nodes 12–15 and the HD save when upscale is explicitly true", () => {
+    const output = convert(loadTemplate(), { ...CANONICAL_OPTS, upscale: true });
+    for (const id of ["12", "13", "14", "15"]) {
+      expect(output[id]).toBeDefined();
+    }
+    expect(output["15"]!.inputs.filename_prefix).toBe("qwen_txt_hd");
+    expect(output["11"]!.inputs.filename_prefix).toBe("qwen_txt");
   });
 });
 
@@ -115,7 +144,14 @@ describe("converter link references", () => {
     expect(output["10"]!.inputs.samples).toEqual(["9", 0]);
     expect(output["10"]!.inputs.vae).toEqual(["4", 0]);
     expect(output["11"]!.inputs.images).toEqual(["10", 0]);
+  });
+
+  it("resolves upscale-branch links to [srcId, srcSlot] references with upscale on", () => {
+    const output = convert(loadTemplate(), { ...CANONICAL_OPTS, upscale: true });
     expect(output["13"]!.inputs.image).toEqual(["10", 0]);
+    expect(output["13"]!.inputs.upscale_model).toEqual(["12", 0]);
+    expect(output["14"]!.inputs.image).toEqual(["13", 0]);
+    expect(output["15"]!.inputs.images).toEqual(["14", 0]);
   });
 });
 

@@ -37,6 +37,12 @@ export interface ConvertOptions {
   batchSize?: number;
   aspect?: AspectRatio;
   img2img?: { enabled: boolean; filename?: string };
+  /**
+   * Keep the HD/4K upscale branch (nodes 12–15, SaveImage 15 `qwen_txt_hd`).
+   * OFF by default: the run produces only the base 1024 image (SaveImage 11
+   * `qwen_txt`) and nodes 12–15 are dropped from the submitted workflow.
+   */
+  upscale?: boolean;
 }
 
 export interface ApiNode {
@@ -99,9 +105,15 @@ export const DEFAULT_PARAMS = {
   denoise: 1,
 } as const;
 
-function isKept(node: TemplateNode, img2imgEnabled: boolean): boolean {
+function isKept(
+  node: TemplateNode,
+  img2imgEnabled: boolean,
+  upscaleEnabled: boolean,
+): boolean {
   if (node.type === "Note") return false;
   if (node.id === 5) return false; // LLMTextProcessor — replaced by the app's interview
+  // Upscale branch (12–15) is optional; dropped unless explicitly requested.
+  if (!upscaleEnabled && node.id >= 12 && node.id <= 15) return false;
   return node.mode === 0 || img2imgEnabled;
 }
 
@@ -131,6 +143,7 @@ function inject(
 
 export function convert(template: Template, opts: ConvertOptions): ApiWorkflow {
   const img2imgEnabled = opts.img2img?.enabled === true;
+  const upscaleEnabled = opts.upscale === true;
 
   const nodesById = new Map<number, TemplateNode>();
   for (const node of template.nodes) nodesById.set(node.id, node);
@@ -142,7 +155,7 @@ export function convert(template: Template, opts: ConvertOptions): ApiWorkflow {
   const keptIds = new Set<number>();
 
   const sorted = [...template.nodes]
-    .filter((node) => isKept(node, img2imgEnabled))
+    .filter((node) => isKept(node, img2imgEnabled, upscaleEnabled))
     .sort((a, b) => a.id - b.id);
   for (const node of sorted) keptIds.add(node.id);
 

@@ -20,6 +20,8 @@ export interface RunParams {
   height: number;
   aspect?: AspectRatio;
   denoise?: number;
+  /** HD/4K upscale branch requested; off by default. */
+  upscale?: boolean;
 }
 
 /** A persisted generation run (images live on disk; rows carry metadata only). */

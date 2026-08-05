@@ -106,47 +106,5 @@
       ],
       "filename_prefix": "qwen_txt"
     }
-  },
-  "12": {
-    "class_type": "UpscaleModelLoader",
-    "inputs": {
-      "model_name": "4x-UltraSharp.pth"
-    }
-  },
-  "13": {
-    "class_type": "ImageUpscaleWithModel",
-    "inputs": {
-      "upscale_model": [
-        "12",
-        0
-      ],
-      "image": [
-        "10",
-        0
-      ]
-    }
-  },
-  "14": {
-    "class_type": "ImageScale",
-    "inputs": {
-      "image": [
-        "13",
-        0
-      ],
-      "upscale_method": "lanczos",
-      "width": 4096,
-      "height": 4096,
-      "crop": "disabled"
-    }
-  },
-  "15": {
-    "class_type": "SaveImage",
-    "inputs": {
-      "images": [
-        "14",
-        0
-      ],
-      "filename_prefix": "qwen_txt_hd"
-    }
   }
 }
