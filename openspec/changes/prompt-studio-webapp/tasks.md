@@ -55,32 +55,32 @@ Chain strategy: pending
 
 ## Phase 3: Comfy Client + Orchestrator
 
-- [ ] 3.1 **comfy.ts HTTP client** — POST `/prompt`, GET `/history/{id}`, GET `/view`, GET `/object_info`, GET `/system_stats`; 502 on unreachable; node-execution errors surfaced with failing node + message; tests with mocked fetch.
+- [x] 3.1 **comfy.ts HTTP client** — POST `/prompt`, GET `/history/{id}`, GET `/view`, GET `/object_info`, GET `/system_stats`; 502 on unreachable; node-execution errors surfaced with failing node + message; tests with mocked fetch.
   AC: `npx vitest run comfy` green; unreachable → 502 path. Deps: 1.3. Est: 130.
 
-- [ ] 3.2 **sse.ts + ws-relay.ts** — SSE framing helpers; ComfyUI WS client (`ws://127.0.0.1:8188/ws`) relaying `progress`/`executed` for the run's prompt_ids; unit tests map WS events to SSE frames.
+- [x] 3.2 **sse.ts + ws-relay.ts** — SSE framing helpers; ComfyUI WS client (`ws://127.0.0.1:8188/ws`) relaying `progress`/`executed` for the run's prompt_ids; unit tests map WS events to SSE frames.
   AC: `npx vitest run ws-relay` green. Deps: 3.1. Est: 140.
 
-- [ ] 3.3 **generation.ts orchestrator** — N separate `/prompt` submissions (batch_size 1, seed `base+i` per spec "seed differs per variation"), 409 if a run is active, run state transitions (pending→running→completed/failed), completion via `/history/{id}`, image fetch via `/view` → disk write, per-variation error isolation; tests: 202 with N prompt_ids, 409 busy, failure surfaces node.
+- [x] 3.3 **generation.ts orchestrator** — N separate `/prompt` submissions (batch_size 1, seed `base+i` per spec "seed differs per variation"), 409 if a run is active, run state transitions (pending→running→completed/failed), completion via `/history/{id}`, image fetch via `/view` → disk write, per-variation error isolation; tests: 202 with N prompt_ids, 409 busy, failure surfaces node.
   AC: `npx vitest run generation` green. Deps: 3.1, 3.2, 2.3. Est: 220.
 
 ## Phase 4: LLM Lifecycle (llm-runtime)
 
-- [ ] 4.1 **RED process-lifecycle tests** — fake spawn + fake `/health` harness: spawn called with `shell:false` + exact argv (`-m <gguf> -c 8192 -ngl 0 --port 8080 --host 127.0.0.1`); orphan cleanup kills only PID whose WMI `ExecutablePath` == vendored binary (fixed powershell script, PID as parameter); foreign PID left untouched; adopt branch when `:8080/health` ok → `pid:null, adopted:true`, never kill.
+- [x] 4.1 **RED process-lifecycle tests** — fake spawn + fake `/health` harness: spawn called with `shell:false` + exact argv (`-m <gguf> -c 8192 -ngl 0 --port 8080 --host 127.0.0.1`); orphan cleanup kills only PID whose WMI `ExecutablePath` == vendored binary (fixed powershell script, PID as parameter); foreign PID left untouched; adopt branch when `:8080/health` ok → `pid:null, adopted:true`, never kill.
   AC: all lifecycle tests fail before implementation. Deps: 1.1. Est: 100. **[TEST-FIRST]**
 
-- [ ] 4.2 **Implement `llm.ts` lifecycle** — spawn/adopt/orphan-protection/shutdown (SIGINT/SIGTERM/`beforeExit`; kill only non-adopted), PID file `data/.llm.pid` `{pid,exePath,startedAt}`, health poll 500 ms / 120 s timeout with binary path on failure, missing-binary error pointing at expected path (`...b8840\win-x64-cuda13\llama-server.exe`).
+- [x] 4.2 **Implement `llm.ts` lifecycle** — spawn/adopt/orphan-protection/shutdown (SIGINT/SIGTERM/`beforeExit`; kill only non-adopted), PID file `data/.llm.pid` `{pid,exePath,startedAt}`, health poll 500 ms / 120 s timeout with binary path on failure, missing-binary error pointing at expected path (`...b8840\win-x64-cuda13\llama-server.exe`).
   AC: 4.1 green; `npm run dev:server` spawns and `/api/llm/status` reports ready/adopted. Deps: 4.1. Est: 180.
 
-- [ ] 4.3 **Chat streaming + conversation state** — RED: NDJSON deltas → SSE `{type:token}`…`{type:done,full,isFinalPrompt}`; `/v1/chat/completions` multi-turn honors server-side history (Map, cap 40 messages, drop oldest pairs, idle GC 30 min); then implement chat service.
+- [x] 4.3 **Chat streaming + conversation state** — RED: NDJSON deltas → SSE `{type:token}`…`{type:done,full,isFinalPrompt}`; `/v1/chat/completions` multi-turn honors server-side history (Map, cap 40 messages, drop oldest pairs, idle GC 30 min); then implement chat service.
   AC: `npx vitest run llm-chat` green; streaming relay frames verified. Deps: 4.2, 3.2. Est: 160. **[TEST-FIRST]**
 
 ## Phase 5: DB + History
 
-- [ ] 5.1 **Migrations** — `apps/server/src/db/migrations/001_init.sql` (runs + images tables, `idx_images_run`), `migrate.ts` applying in one transaction with `PRAGMA user_version`; test `user_version == 1`.
+- [x] 5.1 **Migrations** — `apps/server/src/db/migrations/001_init.sql` (runs + images tables, `idx_images_run`), `migrate.ts` applying in one transaction with `PRAGMA user_version`; test `user_version == 1`.
   AC: `npx vitest run db` green; fresh `data/prompt-studio.db` created with schema. Deps: 1.1. Est: 70.
 
-- [ ] 5.2 **History repository** — parameterized CRUD: insert run (params/seeds/prompt_ids/chat_json), insert image rows (relative paths only — no image bytes), list (chronological, thumbnail), detail, delete run + disk files; relative paths resolved against `DATA_DIR`.
+- [x] 5.2 **History repository** — parameterized CRUD: insert run (params/seeds/prompt_ids/chat_json), insert image rows (relative paths only — no image bytes), list (chronological, thumbnail), detail, delete run + disk files; relative paths resolved against `DATA_DIR`.
   AC: `npx vitest run history` green; DB holds no binary data; delete removes files. Deps: 5.1. Est: 160.
 
 ## Phase 6: Server API Wiring
