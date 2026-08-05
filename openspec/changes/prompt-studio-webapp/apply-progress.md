@@ -84,3 +84,8 @@ tests, and shipped the dev-time WIDGET_NAMES verification script — which was r
 ## Status
 
 5/5 assigned tasks complete (PR 1 slice). Ready for sdd-verify on PR 1 Foundation.
+
+## Next Slice (PR 2)
+
+PR 1 is archived; the next slice (tasks 3.1–6.1) is tracked in
+[apply-progress-pr2.md](./apply-progress-pr2.md).

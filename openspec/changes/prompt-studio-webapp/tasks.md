@@ -85,7 +85,7 @@ Chain strategy: pending
 
 ## Phase 6: Server API Wiring
 
-- [ ] 6.1 **config.ts + index.ts + routes** — env defaults (`SERVER_PORT=8787`, `COMFYUI_URL`, `LLAMA_PORT=8080`, `LLM_BIN`, `LLM_MODEL`, `LLM_SYSTEM_PROMPT`, `DATA_DIR`); Hono app wiring health/llm/generate/history/comfy-passthrough/upload routes; error convention `{error:{code,message}}` (400/404/409/422/502/503/500); llm boot + shutdown hooks; integration tests with mocked comfy + fake spawn covering 202/409/422/502/503 and SSE endpoints.
+- [x] 6.1 **config.ts + index.ts + routes** — env defaults (`SERVER_PORT=8787`, `COMFYUI_URL`, `LLAMA_PORT=8080`, `LLM_BIN`, `LLM_MODEL`, `LLM_SYSTEM_PROMPT`, `DATA_DIR`); Hono app wiring health/llm/generate/history/comfy-passthrough/upload routes; error convention `{error:{code,message}}` (400/404/409/422/502/503/500); llm boot + shutdown hooks; integration tests with mocked comfy + fake spawn covering 202/409/422/502/503 and SSE endpoints.
   AC: `npx vitest run server-routes` green; `npm run dev:server` boots and `/api/health` responds. Deps: 3.3, 4.2, 4.3, 5.2. Est: 240.
 
 ## Phase 7: Web UI (interview-assistant / generation-options / history-gallery)
