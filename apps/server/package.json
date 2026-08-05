@@ -6,5 +6,17 @@
   "description": "Prompt Studio backend — ComfyUI proxy, converter, LLM runtime, history",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.0",
+    "better-sqlite3": "^13.0.3",
+    "hono": "^4.13.0",
+    "nanoid": "^3.3.17",
+    "sharp": "^0.35.3",
+    "ws": "^8.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/ws": "^8.18.1"
   }
 }

@@ -5,10 +5,11 @@
  * numbered file; migrate() applies only pending files.
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type Database from "better-sqlite3";
 
-export const MIGRATIONS_DIR = join(__dirname, "migrations");
+export const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "migrations");
 
 export interface MigrationFile {
   version: number;

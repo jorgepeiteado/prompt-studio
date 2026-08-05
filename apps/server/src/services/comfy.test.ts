@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ComfyClient, ComfyExecutionError, ComfyUnreachableError } from "./comfy";
+import { ComfyClient, ComfyUnreachableError } from "./comfy";
 import type { ApiWorkflow } from "./converter";
 
 const SAMPLE_WORKFLOW: ApiWorkflow = {
@@ -52,8 +52,8 @@ describe("ComfyClient", () => {
     const fetchFn = vi.fn(async () => jsonResponse(historyEntry));
     const client = new ComfyClient({ baseUrl: "http://127.0.0.1:8188", fetchFn });
     const entry = await client.getHistory("abc-123");
-    expect(entry).toBeDefined();
-    expect(entry.status.completed).toBe(true);
+    expect(entry).not.toBeNull();
+    expect(entry!.status.completed).toBe(true);
     expect(fetchFn).toHaveBeenCalledWith(
       "http://127.0.0.1:8188/history/abc-123",
       expect.objectContaining({ method: "GET" }),
