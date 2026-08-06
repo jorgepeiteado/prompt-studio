@@ -20,6 +20,7 @@ function build(overrides: {
   writer?: Partial<ImageWriter>;
   thumb?: Thumbnailer;
   convert?: () => ApiWorkflow;
+  emit?: GenerationDeps["emit"];
 } = {}) {
   const convert = overrides.convert ?? (() => SAMPLE_WORKFLOW);
   const baseComfy: ComfyClientLike = {
@@ -51,6 +52,7 @@ function build(overrides: {
     thumb: overrides.thumb ?? baseThumb,
     convert,
     template: SAMPLE_WORKFLOW,
+    emit: overrides.emit,
   };
   const svc = createGenerationService(deps);
   return { svc, deps };
@@ -142,5 +144,42 @@ describe("GenerationService", () => {
     });
     const addImage = deps.store.addImage as ReturnType<typeof vi.fn>;
     expect(addImage).not.toHaveBeenCalled();
+  });
+
+  it("emits progress/image/complete frames and auto-completes once all variations executed", async () => {
+    const emit = vi.fn();
+    let seq = 0;
+    const { svc, deps } = build({
+      emit,
+      comfy: {
+        submitPrompt: vi.fn(async () => {
+          seq += 1;
+          return `pid-${seq}`;
+        }),
+      },
+    });
+    const { runId, promptIds } = await svc.start(input({ variations: 2 }));
+    expect(promptIds).toEqual(["pid-1", "pid-2"]);
+    const subscribe = deps.relay.subscribe as ReturnType<typeof vi.fn>;
+    const handler = subscribe.mock.calls[0]?.[1];
+
+    // progress frame → SSE progress with computed 0-100 value
+    await handler(promptIds[0], { event: "progress", data: { node: 3, value: 5, max: 10 } });
+    expect(emit).toHaveBeenCalledWith(runId, expect.objectContaining({ type: "progress", variationIndex: 0, progress: 50 }));
+
+    // executed frame for variation 0 → image frame
+    await handler(promptIds[0], {
+      event: "executed",
+      data: { node: "11", images: [{ filename: "a.png", subfolder: "", type: "output" }] },
+    });
+    expect(emit).toHaveBeenCalledWith(runId, expect.objectContaining({ type: "image", variationIndex: 0 }));
+
+    // second executed frame completes the run automatically (runCompletion)
+    await handler(promptIds[1], {
+      event: "executed",
+      data: { node: "11", images: [{ filename: "b.png", subfolder: "", type: "output" }] },
+    });
+    expect(emit).toHaveBeenCalledWith(runId, expect.objectContaining({ type: "complete" }));
+    expect(deps.store.setStatus).toHaveBeenCalledWith(runId, "completed", undefined);
   });
 });

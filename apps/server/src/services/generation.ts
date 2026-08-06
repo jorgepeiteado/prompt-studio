@@ -127,6 +127,7 @@ export function createGenerationService(deps: GenerationDeps): GenerationService
 
     await deps.store.createRun({
       runId,
+      prompt: input.prompt,
       params,
       seeds,
       negativePrompt: input.negativePrompt,

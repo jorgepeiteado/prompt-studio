@@ -67,12 +67,13 @@ function createImageWriter(dataDir: string): ImageWriter {
   return {
     async writeImage(opts: Record<string, unknown>) {
       const runId = String(opts.runId);
-      const variationIndex = Number(opts.variationIndex);
       const filename = String(opts.filename).replace(/[^a-zA-Z0-9._-]/g, "_");
       const data = opts.data as Buffer;
       const dir = join(dataDir, "images", runId);
       mkdirSync(dir, { recursive: true });
-      const localPath = join(dir, `${variationIndex}_${filename}`);
+      // The image is served by its comfy `filename` (see GET
+      // /api/history/:runId/images/:file), so store it under that exact name.
+      const localPath = join(dir, filename);
       writeFileSync(localPath, data);
       return { localPath, width: 1024, height: 1024 };
     },
