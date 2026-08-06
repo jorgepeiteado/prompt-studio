@@ -14,6 +14,7 @@ import { ConversionError } from "./services/converter";
 import { ComfyUnreachableError } from "./services/comfy";
 import { BusyError } from "./services/generation";
 import { encodeSse, SSE_HEADERS } from "./lib/sse";
+import type { RunEventHub } from "./lib/run-events";
 import type { HistoryRepo } from "./db/history";
 import type { ChatService } from "./services/chat";
 import type { LlmLifecycle } from "./services/llm";
@@ -40,6 +41,8 @@ export interface AppServices {
   dataDir: string;
   convertTemplate: typeof import("./services/converter").convert;
   imageUrl?: (runId: string, filename: string) => string;
+  /** Per-run event hub; the SSE endpoint subscribes to stream gen frames. */
+  events?: RunEventHub;
 }
 
 function errorBody(code: number, message: string, details?: unknown) {
@@ -218,8 +221,15 @@ export function createApp(services: AppServices): Hono {
         controller.enqueue(
           encoder.encode(encodeSse("queued", { type: "queued", runId })),
         );
-        // Progress frames are emitted by the generation service subscribers;
-        // the PR-slice scaffold keeps the endpoint open and flushes on close.
+        // Progress/image/complete/failed/cancelled frames emitted by the
+        // generation orchestrator (via the boot RunEventHub) are streamed now.
+        const unsubscribe = services.events?.subscribe(runId, (frame) => {
+          try {
+            controller.enqueue(encoder.encode(encodeSse(frame.type, frame)));
+          } catch {
+            /* stream already closed */
+          }
+        });
         services.generation.isActive(runId);
         const keepalive = setInterval(() => {
           try {
@@ -230,6 +240,7 @@ export function createApp(services: AppServices): Hono {
         }, 15_000);
         c.req.raw.signal.addEventListener("abort", () => {
           clearInterval(keepalive);
+          unsubscribe?.();
           try {
             controller.close();
           } catch {

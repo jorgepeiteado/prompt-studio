@@ -10,6 +10,7 @@
  */
 import type { ApiWorkflow } from "./converter";
 import type { ComfyImageOutput } from "./comfy";
+import type { RunEventFrame } from "../lib/run-events";
 
 export class BusyError extends Error {
   readonly code = 409;
@@ -47,7 +48,7 @@ export interface ComfyClientLike {
 
 export interface MappedSseLike {
   event: string;
-  data: { node?: string | number; images?: ComfyImageOutput[] };
+  data: { node?: string | number; images?: ComfyImageOutput[]; value?: number; max?: number };
 }
 
 export interface RelayLike {
@@ -85,6 +86,12 @@ export interface GenerationDeps {
   /** convert(template, opts) — the deterministic converter. */
   convert: (template: ApiWorkflow, opts: Record<string, unknown>) => ApiWorkflow;
   template: ApiWorkflow;
+  /**
+   * Optional bridge to the SSE deliverer: publish one run event frame per
+   * progress tick, per written image, and per terminal transition. Wired at
+   * boot into the RunEventHub; null in unit tests that assert store calls.
+   */
+  emit?: (runId: string, event: RunEventFrame) => void;
 }
 
 export interface GenerationService {
@@ -140,11 +147,39 @@ export function createGenerationService(deps: GenerationDeps): GenerationService
       return idx === -1 ? 0 : idx;
     };
 
+    const donePrompts = new Set<string>();
+    let completionStarted = false;
+    const maybeCompletion = async (): Promise<void> => {
+      if (completionStarted) return;
+      if (promptIds.length === 0) return;
+      if (donePrompts.size < promptIds.length) return;
+      completionStarted = true;
+      await runCompletion(runId, promptIds);
+    };
+
     deps.relay.subscribe(promptIds, async (promptId, sse) => {
       if (cancelled.has(runId)) return; // post-cancel WS events ignored
+      const variationIndex = variationOf(promptId);
+      if (sse.event === "progress") {
+        const value = Number(sse.data.value ?? 0);
+        const max = Number(sse.data.max ?? 100);
+        const progress = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+        deps.emit?.(runId, { type: "progress", runId, variationIndex, progress });
+        return;
+      }
       if (sse.event !== "executed") return;
       const kind = String(sse.data.node) === "15" ? "hd" : "base";
-      await handleExecuted(runId, promptId, variationOf(promptId), kind, sse.data.images);
+      await handleExecuted(runId, promptId, variationIndex, kind, sse.data.images);
+      for (const img of sse.data.images ?? []) {
+        deps.emit?.(runId, {
+          type: "image",
+          runId,
+          variationIndex,
+          url: `/api/history/${runId}/images/${img.filename}`,
+        });
+      }
+      donePrompts.add(promptId);
+      await maybeCompletion();
     });
 
     return { runId, promptIds };
@@ -180,6 +215,7 @@ export function createGenerationService(deps: GenerationDeps): GenerationService
     if (cancelled.has(runId)) {
       await deps.store.setStatus(runId, "cancelled");
       activeRunId = null;
+      deps.emit?.(runId, { type: "cancelled", runId });
       return;
     }
     let firstError: string | undefined;
@@ -202,8 +238,10 @@ export function createGenerationService(deps: GenerationDeps): GenerationService
     }
     if (firstError) {
       await deps.store.setStatus(runId, "failed", firstError);
+      deps.emit?.(runId, { type: "failed", runId, message: firstError });
     } else {
       await deps.store.setStatus(runId, "completed", undefined);
+      deps.emit?.(runId, { type: "complete", runId });
     }
     activeRunId = null;
   }
@@ -212,6 +250,7 @@ export function createGenerationService(deps: GenerationDeps): GenerationService
     cancelled.add(runId);
     await deps.store.setStatus(runId, "cancelled");
     if (activeRunId === runId) activeRunId = null;
+    deps.emit?.(runId, { type: "cancelled", runId });
   }
 
   return {
