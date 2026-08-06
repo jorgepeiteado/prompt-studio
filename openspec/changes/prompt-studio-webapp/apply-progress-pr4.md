@@ -91,7 +91,18 @@ follow-ups, and completes the final two integration tasks:
 | `README.md` | Create — setup, ports, success-criteria smoke checklist (8.2) |
 | `openspec/changes/prompt-studio-webapp/{tasks.md, apply-progress-pr3.md}` | Modify — 8.1/8.2 `[x]`, TDD table |
 
-## Deviation Notes
+## Work Unit Evidence
+
+| Unit | Focused test command + result | Runtime harness + result | Rollback boundary |
+|------|------------------------------|--------------------------|-------------------|
+| W1 relay wiring | `npm test -- run-events boot` → 7/7 green | `boot.test.ts` drives real relay + mocked Comfy socket to `completed`; SSE stream live | Revert `08363c9` (server index/generation/app + run-events/ws-relay) |
+| W2 E2E | `npm test -- e2e` → 4/4 green | Mocked ComfyUI full journey (chat→4→images→detail→regenerate→delete, 409/502/422) | Revert `8bc517d` (e2e.test.ts + generation.test.ts + image-writer/prompt fixes) |
+| W3 regenerate nav | `npm test -- reviewView reviewHydrate` → 6/6 green | jsdom component test proves `/review?from=` shows live ProgressView | Revert `04324b7` (ReviewView, reviewHydrate) |
+| W4 refresh recovery | `npm test -- progress progressView` → 10/10 green | Component test reconciles finished bars on mount; E2E unaffected | Revert `bc0e284` (progress.ts, ProgressView) + vitest tsx glob |
+| W5 README | `npm test` full suite → 177/177 | `npx vite build` green (dist ~121 kB gzip) | Revert `256162c` (README only) |
+| W6 artifacts | `npm test` → 177/177, typecheck/lint clean | n/a (docs only) | Revert artifacts commit (tasks.md/apply-progress docs) |
+
+## Deviations from Design
 
 - The manual smoke (live ComfyUI) is documented but not executed here: ComfyUI is not
   running in this environment. The full flow is proven against a mocked ComfyUI in
