@@ -5,6 +5,7 @@ import {
   applyProgressEvent,
   countDone,
   emptyProgress,
+  reconcileFromStatus,
   type ProgressMap,
 } from "../../lib/progress";
 import { cn } from "../../lib/utils";
@@ -53,6 +54,26 @@ export function ProgressView({ runId, total, prompt, onCancel, onOpenGallery }: 
     });
     return unsubscribe;
   }, [runId, total]);
+
+  // Refresh-mid-generation recovery (W4): the SSE stream alone cannot reflect a
+  // run that already finished before this view mounted (e.g. after a reload).
+  // Poll the persisted status once and reconcile the bars so the restored page
+  // shows the true state (completed variants, terminal failure/cancel).
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .getGenerateRun(runId)
+      .then((status) => {
+        if (cancelled) return;
+        setMap((m) => reconcileFromStatus(m, status));
+      })
+      .catch(() => {
+        /* status unavailable — SSE-only rendering is still fine */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [runId]);
 
   async function handleCancel() {
     setCancelling(true);

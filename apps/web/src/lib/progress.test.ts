@@ -4,6 +4,7 @@ import {
   applyProgressEvent,
   countDone,
   emptyProgress,
+  reconcileFromStatus,
   type ProgressMap,
 } from "./progress";
 
@@ -55,5 +56,58 @@ describe("lib/progress.ts — per-variation SSE progress reducer (RED first)", (
     const snapshot = JSON.stringify(before);
     applyProgressEvent(before, { type: "started", runId: "r1", variationIndex: 0 });
     expect(JSON.stringify(before)).toBe(snapshot);
+  });
+});
+
+describe("lib/progress.ts — reconcileFromStatus (refresh-mid-generation poll fallback, W4)", () => {
+  it("marks every variation complete with urls when the status is completed", () => {
+    const map = reconcileFromStatus(emptyProgress(3), {
+      status: "completed",
+      images: [
+        { variationIndex: 0, kind: "base", url: "/a.png" },
+        { variationIndex: 1, kind: "base", url: "/b.png" },
+        { variationIndex: 2, kind: "base", url: "/c.png" },
+      ],
+      error: null,
+    });
+    expect(countDone(map)).toBe(3);
+    expect(map[0]).toMatchObject({ status: "complete", progress: 100, url: "/a.png" });
+    expect(map[0]?.url).toBe("/a.png");
+  });
+
+  it("marks base images complete from the images list even while running", () => {
+    const map = reconcileFromStatus(emptyProgress(4), {
+      status: "running",
+      images: [{ variationIndex: 2, kind: "base", url: "/c.png" }],
+      error: null,
+    });
+    expect(map[2]).toMatchObject({ status: "complete", progress: 100, url: "/c.png" });
+    // untouched variants stay queued (SSE continues for them).
+    expect(map[0]?.status).toBe("queued");
+    expect(countDone(map)).toBe(1);
+  });
+
+  it("marks only the not-yet-complete variants failed on a failed status", () => {
+    const before = {
+      ...emptyProgress(2),
+      0: { status: "complete", progress: 100, url: "/a.png" },
+    } as ProgressMap;
+    const map = reconcileFromStatus(before, {
+      status: "failed",
+      images: [{ variationIndex: 0, kind: "base", url: "/a.png" }],
+      error: "node 11 error",
+    });
+    expect(map[0]?.status).toBe("complete");
+    expect(map[1]?.status).toBe("failed");
+  });
+
+  it("marks remaining variants cancelled on a cancelled status", () => {
+    const map = reconcileFromStatus(emptyProgress(2), {
+      status: "cancelled",
+      images: [],
+      error: null,
+    });
+    expect(map[0]?.status).toBe("cancelled");
+    expect(map[1]?.status).toBe("cancelled");
   });
 });
