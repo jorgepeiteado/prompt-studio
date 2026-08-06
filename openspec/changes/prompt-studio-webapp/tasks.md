@@ -110,10 +110,10 @@ Chain strategy: pending
 
 ## Phase 8: Integration + Verification
 
-- [ ] 8.1 **End-to-end server integration tests** — mocked ComfyUI full flow: chat → generate 4 variations → image rows → history list/detail → regenerate (new run, old intact) → delete; 409/422/502/503 error paths.
+- [x] 8.1 **End-to-end server integration tests** — mocked ComfyUI full flow: chat → generate 4 variations → image rows → history list/detail → regenerate (new run, old intact) → delete; 409/422/502/503 error paths.
   AC: `npm test` (full suite) green. Deps: 6.1, 7.5. Est: 160.
 
-- [ ] 8.2 **Manual smoke + README** — run `verifyAgainstObjectInfo` vs live ComfyUI, lock golden; README setup (ComfyUI :8188 running; llama auto-spawned; ports 5173/8787/8080); proposal success criteria checklist (interview → 4 variations → gallery → regenerate).
+- [x] 8.2 **Manual smoke + README** — run `verifyAgainstObjectInfo` vs live ComfyUI, lock golden; README setup (ComfyUI :8188 running; llama auto-spawned; ports 5173/8787/8080); proposal success criteria checklist (interview → 4 variations → gallery → regenerate).
   AC: manual smoke passes all success criteria; README documents setup and ports. Deps: 8.1. Est: 60.
 
 ## TDD Notes

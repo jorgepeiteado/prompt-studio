@@ -50,3 +50,19 @@ All six Phase 7 tasks have been implemented and are green:
 - `npm run typecheck`: clean.
 - `npm run lint`: clean.
 - `npm run build` (typecheck + `vite build`): succeeds, dist bundle gzip ~120 kB JS / ~4.5 kB CSS.
+
+### TDD Cycle Evidence
+
+| Task | Test File | RED evidence | GREEN | Coverage highlights |
+|------|-----------|--------------|-------|---------------------|
+| 7.2 api wrapper | `apps/web/src/lib/api.test.ts` | ✅ observed | ✅ 13/13 | postGenerate body (prompt/variations/upscale), DELETE cancel, GET generate status, regenerate `{fromRunId, keepSeed}`, llm status, session restore, history list/detail/delete, EventSource subscribe + SSE frame types, `parseSseChunk`, error→Spanish copy |
+| 7.2 strings | `apps/web/src/lib/strings.test.ts` | ✅ observed | ✅ 5/5 | all referenced keys exist + non-empty, es-AR register incl. voseo, 4 quick-reply axes, designed error copy per code |
+| 7.3 stores | `apps/web/src/stores/{runStore,chatStore,galleryStore}.test.ts` | ✅ observed | ✅ 23/23 | defaults (20/2.5/euler/simple/4), seed random, aspect 4:5→1024×1280, custom dims, 9 variations blocked, activeRunId, appendToken, hydrate, finalPrompt, gallery list/loading/remove |
+| 7.5 progress reducer | `apps/web/src/lib/progress.test.ts` | ✅ observed | ✅ 6/6 | per-variation started→progress→complete, sticky terminal states, global cancel, immutability |
+| 7.7 theme logic | `apps/web/src/lib/theme-logic.test.ts` | ✅ observed | ✅ 4/4 | class dark, localStorage, system default |
+| 7.1/7.4/7.6 scaffolds & views | structural + store/api unit coverage | ❌ no component tests (note passed to PR4) | ⚠️ static inspection | view behavior proven by store/api unit tests; jsdom component tests added in PR4 |
+
+**Note:** Strict-SDD component tests for the views (InterviewView, ReviewView,
+ProgressView, gallery) did not exist at PR3 verification. That was flagged as a
+WARNING; PR4 added the first `@testing-library/react` component tests (see
+[apply-progress-pr4.md](./apply-progress-pr4.md)).
