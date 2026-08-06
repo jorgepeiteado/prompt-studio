@@ -90,22 +90,22 @@ Chain strategy: pending
 
 ## Phase 7: Web UI (interview-assistant / generation-options / history-gallery)
 
-- [ ] 7.1 **Web scaffold** — Vite + React + TS in `apps/web`, Tailwind + shadcn/ui (stone, cssVariables, class dark), `globals.css` darkroom tokens, minimal `ThemeProvider` (class, localStorage, system default), `AppLayout`/`Header`/nav, react-router routes (`/`, `/review`, `/gallery`, `/gallery/:runId`), vite proxy `/api` → `127.0.0.1:8787`.
+- [x] 7.1 **Web scaffold** — Vite + React + TS in `apps/web`, Tailwind + shadcn/ui (stone, cssVariables, class dark), `globals.css` darkroom tokens, minimal `ThemeProvider` (class, localStorage, system default), `AppLayout`/`Header`/nav, react-router routes (`/`, `/review`, `/gallery`, `/gallery/:runId`), vite proxy `/api` → `127.0.0.1:8787`.
   AC: `npm run dev` serves at 5173; theme toggle persists. Deps: 1.1. Est: 220.
 
-- [ ] 7.2 **lib/api.ts + strings.ts** — fetch/SSE wrapper (EventSource for progress, AbortController cancel); Spanish (AR) `strings.ts` nested keys + 4-axis quick-reply chips (rioplatense); unit tests: all referenced keys exist, api wrapper with mocked fetch.
+- [x] 7.2 **lib/api.ts + strings.ts** — fetch/SSE wrapper (EventSource for progress, AbortController cancel); Spanish (AR) `strings.ts` nested keys + 4-axis quick-reply chips (rioplatense); unit tests: all referenced keys exist, api wrapper with mocked fetch.
   AC: `npx vitest run web-lib` green; UI copy Spanish (AR), identifiers English. Deps: 7.1. Est: 160.
 
-- [ ] 7.3 **zustand stores** — `useChatStore`, `useRunStore`, `useGalleryStore`; store unit tests.
+- [x] 7.3 **zustand stores** — `useChatStore`, `useRunStore`, `useGalleryStore`; store unit tests.
   AC: `npx vitest run web-stores` green. Deps: 7.2. Est: 120.
 
-- [ ] 7.4 **InterviewView** — MessageList/MessageBubble/TypingIndicator/QuickReplyChips/ChatInput; consumes SSE chat; on `isFinalPrompt` → `/review` with editable prompt; empty prompt blocks submit.
+- [x] 7.4 **InterviewView** — MessageList/MessageBubble/TypingIndicator/QuickReplyChips/ChatInput; consumes SSE chat; on `isFinalPrompt` → `/review` with editable prompt; empty prompt blocks submit.
   AC: tokens stream, chip tap sends suggestion, final prompt lands in editor. Deps: 7.3, 4.3. Est: 220.
 
-- [ ] 7.5 **ReviewView + ProgressView** — PromptEditor (empty blocks submit + validation msg), OptionsPanel (seed randomized, steps 20, cfg 2.5, euler, simple), AspectPicker (5 presets + custom), VariationSlider 1–8 (9 blocked with message), RunSummaryCard, GenerateButton → `POST /api/generate`, per-variation SSE progress bars, navigate to gallery on complete.
+- [x] 7.5 **ReviewView + ProgressView** — PromptEditor (empty blocks submit + validation msg), OptionsPanel (seed randomized, steps 20, cfg 2.5, euler, simple), AspectPicker (5 presets + custom), VariationSlider 1–8 (9 blocked with message), RunSummaryCard, GenerateButton → `POST /api/generate`, per-variation SSE progress bars, navigate to gallery on complete.
   AC: preset 4:5 → 1024×1280 sent; variations 9 blocked; review shows prompt/resolution/params/count. Deps: 7.3. Est: 260.
 
-- [ ] 7.6 **GalleryView + RunDetailView** — RunList/RunCard (chronological, thumbnail, prompt excerpt, status, empty-state), ImageViewer, CompareView (2+ images side-by-side with metadata), ChatReplay (`chat_json`), RegenerateButton (`POST /api/regenerate`, new run, original untouched), Delete run.
+- [x] 7.6 **GalleryView + RunDetailView** — RunList/RunCard (chronological, thumbnail, prompt excerpt, status, empty-state), ImageViewer, CompareView (2+ images side-by-side with metadata), ChatReplay (`chat_json`), RegenerateButton (`POST /api/regenerate`, new run, original untouched), Delete run.
   AC: newest run first; compare renders 2 images + metadata; regenerate creates new entry. Deps: 7.3, 5.2. Est: 240.
 
 ## Phase 8: Integration + Verification
