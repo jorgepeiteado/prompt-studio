@@ -3,6 +3,7 @@ import type { AspectRatio, ChatMessage, ImageRow, RunStatus } from "./types.js";
 /** POST /api/generate request body. */
 export interface GenerateRequestDto {
   prompt: string;
+  negativePrompt?: string;
   seed?: number;
   steps?: number;
   cfg?: number;
