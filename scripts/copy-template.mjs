@@ -11,7 +11,7 @@
  * Default source: <repoRoot>/../workflow_fotorealista_qwen.json
  */
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +26,34 @@ export function sha256Of(filePath) {
 }
 
 /**
+ * Synchronous sleep (Atomics.wait on a throwaway buffer works on the main
+ * thread in Node without blocking the event loop for other processes).
+ */
+function sleep(ms) {
+  const sab = new Int32Array(new SharedArrayBuffer(4));
+  Atomics.wait(sab, 0, 0, ms);
+}
+
+/**
+ * renameSync fails with EPERM on Windows if another process (e.g. a parallel
+ * vitest worker reading the template, or an antivirus scanner) briefly holds
+ * the target open. Retry with backoff; the failure is transient by nature.
+ */
+function renameWithRetry(src, dest, attempts = 10) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      renameSync(src, dest);
+      return;
+    } catch (err) {
+      lastErr = err;
+      sleep(25 * (i + 1));
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Copies `sourcePath` into assets/workflows/ byte-identical, records the
  * SHA-256 sidecar, and verifies the copy matches the source.
  * @returns {{ targetPath: string, sha256: string }}
@@ -36,7 +64,12 @@ export function copyTemplate(sourcePath = DEFAULT_SOURCE) {
   }
   mkdirSync(TARGET_DIR, { recursive: true });
   const targetPath = join(TARGET_DIR, TEMPLATE_NAME);
-  copyFileSync(sourcePath, targetPath);
+  // Atomic write: copy to a temp file first, then rename into place so a
+  // concurrent reader (e.g. the converter golden test in a parallel vitest
+  // pool) never observes a partially-written template.
+  const tmpPath = `${targetPath}.tmp-${process.pid}`;
+  copyFileSync(sourcePath, tmpPath);
+  renameWithRetry(tmpPath, targetPath);
 
   const sourceHash = sha256Of(sourcePath);
   const targetHash = sha256Of(targetPath);
