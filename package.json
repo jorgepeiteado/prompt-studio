@@ -15,10 +15,11 @@
     "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "npm run dev --workspace @promptstudio/server",
     "dev:web": "npm run dev --workspace @promptstudio/web",
-    "build": "npm run typecheck",
+    "build": "npm run typecheck && npm run build:web",
+    "build:web": "npm run build --workspace @promptstudio/web",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint . --quiet",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web",
     "copy:template": "node scripts/copy-template.mjs",
     "update:golden": "tsx scripts/update-golden.ts -u",
     "verify:object-info": "tsx apps/server/src/scripts/verifyAgainstObjectInfo.ts"
