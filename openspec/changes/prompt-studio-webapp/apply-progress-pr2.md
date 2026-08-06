@@ -104,3 +104,8 @@ Verified the 6.1 AC end-to-end: `npm run dev:server` boots the Hono server on
 ## Status
 
 PR 2 Server Core tasks 3.1–6.1 complete with 102/102 tests green. Ready for sdd-verify on PR 2 slice.
+
+## Next Slice (PR 3)
+
+PR 2 applied the same work-unit continuity pattern; the next slice (tasks 7.1–7.6,
+Web UI) is tracked in [apply-progress-pr3.md](./apply-progress-pr3.md).
