@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, messageForError } from "../lib/api";
+import { hydrateReviewRun } from "../lib/reviewHydrate";
 import { strings } from "../lib/strings";
 import { useRunStore } from "../stores/runStore";
 import { PromptEditor } from "../components/review/PromptEditor";
@@ -18,18 +19,48 @@ const ACTIVE_RUN_KEY = "prompt-studio-active-run";
  * generation options map onto POST /api/generate (upscale optional, OFF by
  * default). On success the active run is tracked (sessionStorage-persisted so
  * a refresh restores the ProgressView — "refresh-mid-generation recovery").
+ *
+ * /review?from=<runId> (regenerate flow) restores that run: prefills the editor
+ * from its persisted prompt/params and shows its live ProgressView (PR4 W1).
  */
 export function ReviewView() {
   const navigate = useNavigate();
   const run = useRunStore();
+  const [searchParams] = useSearchParams();
+  const from = searchParams.get("from");
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  // Refresh-mid-generation recovery: restore an active run on mount.
+  // Regenerate flow + refresh-mid-generation recovery: restore an active run.
   useEffect(() => {
+    if (from) {
+      let cancelled = false;
+      void (async () => {
+        try {
+          const detail = await api.getRunDetail(from);
+          if (cancelled) return;
+          hydrateReviewRun(
+            {
+              setPrompt: run.setPrompt,
+              setString: (k, v) => run.setString(k, v),
+              setNumber: (k, v) => run.setNumber(k, v),
+            },
+            detail,
+          );
+          run.setActiveRunId(from);
+          window.sessionStorage.setItem(ACTIVE_RUN_KEY, from);
+        } catch {
+          // Missing/hidden run: fall through to the default editor.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
     const active = window.sessionStorage.getItem(ACTIVE_RUN_KEY);
     if (active && !run.activeRunId) run.setActiveRunId(active);
-  }, []);
+    return undefined;
+  }, [from]);
 
   const handleGenerate = useCallback(async () => {
     if (run.prompt.trim().length === 0) return;
