@@ -51,7 +51,17 @@ function errorBody(code: number, message: string, details?: unknown) {
 
 export function createApp(services: AppServices): Hono {
   const app = new Hono();
-  app.use("*", cors());
+  // Security: the SPA is served same-origin via the Vite proxy (127.0.0.1:5173 -> 8787),
+  // so no open CORS is needed. Scope any cross-origin allowance to the exact dev origin
+  // only; never reflect arbitrary origins (drive-by read /api/history, prompts, images).
+  app.use(
+    "*",
+    cors({
+      origin: "http://127.0.0.1:5173",
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type"],
+    }),
+  );
 
   // ---- error envelope ----
   app.onError((err, c) => {
