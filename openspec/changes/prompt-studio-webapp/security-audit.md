@@ -89,3 +89,16 @@ This is a **defensible, well-hardened localhost application**. The 14 concrete c
 Optional hardening before a wider LAN/internet presence (not required for loopback single-user): CSP + static serving (INFO-1), strip `localPath`/`thumbnailPath` from the API DTO (L-1), and gate error verbosity (L-2).
 
 > Once M-1 (CORS scope) is applied and the router is upgraded, verdict upgrades to **READY** for loopback production use.
+
+---
+
+## Resolution (2026-08-06, commit 7b8c0eb) — VERDICT UPGRADED TO **READY**
+
+Both MEDIUM gates shipped in one hardening commit:
+
+1. **M-1 (CORS):** global open `app.use("*", cors())` removed; now scoped `cors({ origin: "http://127.0.0.1:5173", allowMethods, allowHeaders })` — the SPA is same-origin via the Vite proxy, so no drive-by website can read `/api/history`, prompts or images.
+2. **M-2 (router):** `react-router-dom` upgraded `6.30.4 -> 7.18.2`; clears GHSA-337j-9hxr-rhxg (constructor injection, CVSS 6.1) and GHSA-wrjc-x8rr-h8h (open redirect).
+
+`npm audit` now reports **0 vulnerabilities** (root + prod only); `npm test` 177/177 pass; `tsc` and `vite build` green.
+
+**Final verdict: READY** for loopback production use. Optional refinements (L-1 DTO path leak strip, L-2 error envelope, INFO-1 CSP/static serving) remain documented for a future wider-presence exercise.
