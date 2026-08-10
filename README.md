@@ -1,11 +1,30 @@
 # Prompt Studio — local AI prompt designer for ComfyUI
 
-Prompt Studio chats with you (es-AR) until it reaches a photographic prompt,
-lets you edit it, and generates **N image variations** on a local **ComfyUI**
-install, with live per-variation progress, history, and regeneration.
+> Chat with a local "photographic director" LLM until you get the perfect English
+> prompt, edit it, and render **N image variations** on your local ComfyUI —
+> 100 % local, no cloud, no API keys.
 
-It is a **100 % local app**: LLM, server and ComfyUI all run on your machine.
-No cloud services.
+[![Tests](https://img.shields.io/badge/tests-177%20passed%20%2F%2027%20files-green)](https://github.com/jorgepeiteado/prompt-studio)
+[![Security audit](https://img.shields.io/badge/security%20audit-READY-green)](#security)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](#license)
+
+---
+
+## What it does
+
+1. **Interactive interview (es-AR)** — a local LLM (Qwen3-4B, via `llama-server`)
+   asks photographic-director questions until it proposes a complete prompt.
+2. **Editable prompt** — review, tweak, and confirm the English prompt by hand;
+   it is never locked by the machine.
+3. **N variations** — generate between 1 and 8 images from the prompt, each with
+   its own seed, on your local ComfyUI.
+4. **Live progress** — per-variation progress streamed over SSE/WebSocket while
+   the queue runs.
+5. **History & regeneration** — every run is stored (SQLite + images on disk);
+   re-run any prompt, keep the originals untouched.
+
+Everything runs on your machine: the conversation, the generation, and the data.
+No telemetry, no cloud services, no credentials.
 
 ## Stack
 
@@ -15,19 +34,25 @@ No cloud services.
 | Backend | Hono (TypeScript), SQLite (`better-sqlite3`) |
 | LLM | `llama-server` (spawned/adopted by the server) |
 | Image | Local ComfyUI (workflow `comfyui/workflow_fotorealista_qwen.json`) |
-| Monorepo | npm workspaces (`apps/*`, `packages/*`) |
+| Monorepo | npm workspaces (`apps/*`, `packages/*`), strict TDD |
 
 ## Requirements
 
-- **Node.js ≥ 22** and npm.
-- **ComfyUI** running at `http://127.0.0.1:8188` with the nodes required by
-  the workflow `comfyui/workflow_fotorealista_qwen.json` (Qwen caption, etc.).
-- **`llama-server.exe`** from llama.cpp (CUDA/win-x64 build) and a GGUF model
-  (e.g. `Qwen3-4B-Instruct-2507-Q4_K_M.gguf`).
+| Requirement | Notes |
+|-------------|-------|
+| **Node.js ≥ 22** + npm | dev tooling |
+| **ComfyUI** on `http://127.0.0.1:8188` | with the custom nodes used by `comfyui/workflow_fotorealista_qwen.json` (Qwen caption/LLM nodes) |
+| **Qwen-Image 2512** model in ComfyUI | `qwen-image-2512-Q4_K_M.gguf` (checkpoints / diffusion models dir) |
+| **`llama-server.exe`** | llama.cpp CUDA/win-x64 build (see `.env.example`) |
+| **GGUF model for the LLM** | e.g. `Qwen3-4B-Instruct-2507-Q4_K_M.gguf` |
 
 ## Configuration
 
-Copy `.env.example` → `.env` and adjust the paths:
+```bash
+cp .env.example .env   # Windows: copy .env.example .env
+```
+
+Edit the paths:
 
 ```dotenv
 SERVER_PORT=8787
@@ -43,8 +68,8 @@ LLM_CTX=8192
 DATA_DIR=./data
 ```
 
-> `DATA_DIR` holds the SQLite database and generated images under `/data`. No
-> credentials involved.
+> `DATA_DIR` holds the SQLite database and generated images under `data/`.
+> No credentials involved.
 
 ## Install & run
 
@@ -53,8 +78,9 @@ npm install
 npm run dev
 ```
 
-This starts **server** (port `8787`) and **web** (port `5173`, proxy `/api` →
-`127.0.0.1:8787`) in parallel. ComfyUI must already be running on `:8188`.
+That starts **server** (`8787`) and **web** (`5173`, proxy `/api` → `127.0.0.1:8787`)
+in parallel. Open **http://localhost:5173**. ComfyUI must already be running on
+`:8188`.
 
 Ports in use:
 
@@ -64,6 +90,17 @@ Ports in use:
 | `8787` | Prompt Studio API (server) |
 | `8080` | `llama-server` (spawned/adopted by the server) |
 | `5173` | Vite dev server (frontend) |
+
+## Manual smoke test
+
+1. **Interview** → answer the photographer-director until a final prompt appears and is editable.
+2. **Generate** → choose variations (1–8) and watch live per-variation progress; images land in the gallery as they finish.
+3. **Gallery** → a completed run shows its thumbnail, the exact prompt, and status.
+4. **Regenerate** → new run from the same prompt; the original run stays untouched.
+5. **Delete** → removes the run row and its image files.
+
+> The full journey is also automated against a mocked ComfyUI in
+> `apps/server/src/e2e.test.ts` (177 tests / 27 files, strict TDD).
 
 ## Useful commands
 
@@ -79,30 +116,31 @@ npm run verify:object-info # cross-check WIDGET_NAMES vs live ComfyUI /object_in
 npm run update:golden      # regenerate the golden after review (-u)
 ```
 
-## Success criteria (manual smoke)
+## Security
 
-Proposal success checklist (PR4 / task 8.2) against a real instance:
+Professional security audit performed at close (see
+`openspec/changes/prompt-studio-webapp/security-audit.md`):
 
-1. **Interview** → reach an editable final prompt.
-   - `POST /api/llm/chat` → `{type:done, full, isFinalPrompt:true}`.
-2. **4 variations** → N images (N distinct seeds).
-   - `POST /api/generate` → `runId` + 4 `prompt_ids`; SSE `/events` delivers
-     `progress` → `image` ×4 → `complete`.
-3. **Gallery** → the run shows `Completado`, with thumbnail, prompt and status.
-4. **Regenerate** → new run (original untouched), `/review?from=<runId>` shows
-   its live progress.
-5. **Delete** → removes row and image files (204).
-
-> The full flow is automated against a mocked ComfyUI
-> (`apps/server/src/e2e.test.ts`); the manual smoke only validates integration
-> with the real ComfyUI.
+- **0 critical / 0 high** findings; 0 secrets committed (`git log -p` scan),
+  no SQL injection (all parameterized), no path traversal, no SSRF, no XSS.
+- All processes bind **loopback only** (`127.0.0.1`); the server refuses to
+  start on a non-loopback host.
+- CORS scoped to the exact dev origin (same-origin via Vite proxy).
+- `npm audit`: **0 vulnerabilities**.
+- **Verdict: READY** for loopback production use.
 
 ## Layout
 
 ```
-apps/server   # Hono API, converter, generation orchestrator, LLM, SQLite
-apps/web      # React UI (interview, review, progress, gallery, detail)
-packages/shared # types + DTOs + shared logic (aspect, validation)
-assets/workflows / fixtures   # template + golden (byte-identical)
-scripts/      # copy-template, update-golden
+apps/server          # Hono API, workflow converter, generation orchestrator, LLM, SQLite
+apps/web             # React UI (interview, review, progress, gallery, detail)
+packages/shared      # types + DTOs + shared logic (aspect, validation)
+assets/workflows     # template workflow (Qwen fotorealista)
+assets/fixtures      # golden API workflow (byte-identical)
+scripts/             # copy-template, update-golden
+openspec/            # SDD change artifacts (proposal, design, tasks, verify, security audit)
 ```
+
+## License
+
+MIT
