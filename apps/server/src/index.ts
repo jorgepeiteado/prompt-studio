@@ -6,9 +6,10 @@
  * the loopback host. Heavy native wiring (ws relay, spawn) is injected at boot,
  * never hard-coded in services.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawn as spawnChild, execFile as execFileChild } from "node:child_process";
 import Database from "better-sqlite3";
 import { serve } from "@hono/node-server";
 import { getConfig, type ServerConfig } from "./config";
@@ -20,7 +21,7 @@ import { convert } from "./services/converter";
 import type { ApiWorkflow } from "./services/converter";
 import { createGenerationService, type GenerationStore } from "./services/generation";
 import type { ComfyClientLike, ImageWriter, MappedSseLike, RelayLike } from "./services/generation";
-import { createLlmLifecycle, type LlmLifecycle } from "./services/llm";
+import { createLlmLifecycle, type LlmLifecycle, type LlmLifecycleDeps, type PidFileRecord } from "./services/llm";
 import { createChatService, type ChatService } from "./services/chat";
 import { createThumbnailer } from "./services/thumbs";
 import { WsRelay, type WsLike } from "./lib/ws-relay";
@@ -47,6 +48,17 @@ export interface BootOverrides {
   template?: ApiWorkflow;
   /** Replace the deterministic workflow converter. */
   convert?: (template: ApiWorkflow, opts: Record<string, unknown>) => ApiWorkflow;
+  /**
+   * Real native/spawn primitives for the LLM lifecycle. When omitted, the
+   * runtime uses inert test stubs (build() is importable without side effects);
+   * production boot supplies the real spawn/kill/fs wiring.
+   */
+  llmNative?: Partial<
+    Pick<
+      LlmLifecycleDeps,
+      "binExists" | "spawnFn" | "execFile" | "killFn" | "readPidFile" | "writePidFile" | "removePidFile" | "fsExists"
+    >
+  >;
 }
 
 export interface BootResult {
@@ -123,17 +135,17 @@ export function build(db: Database.Database, cfg: ServerConfig, overrides: BootO
     pidFile: cfg.llmPidFile,
     pollIntervalMs: 500,
     healthTimeoutMs: cfg.llmHealthTimeoutMs,
-    binExists: () => true,
-    spawnFn: () => {
+    binExists: overrides.llmNative?.binExists ?? (() => true),
+    spawnFn: overrides.llmNative?.spawnFn ?? (() => {
       throw new Error("spawnFn must be injected at boot; not wired in build().");
-    },
-    execFile: () => {},
+    }),
+    execFile: overrides.llmNative?.execFile ?? (() => {}),
     fetchFn: (url, init) => fetch(url, init),
-    killFn: () => {},
-    readPidFile: () => null,
-    writePidFile: () => {},
-    removePidFile: () => {},
-    fsExists: () => true,
+    killFn: overrides.llmNative?.killFn ?? (() => {}),
+    readPidFile: overrides.llmNative?.readPidFile ?? (() => null),
+    writePidFile: overrides.llmNative?.writePidFile ?? (() => {}),
+    removePidFile: overrides.llmNative?.removePidFile ?? (() => {}),
+    fsExists: overrides.llmNative?.fsExists ?? (() => true),
   });
 
   const chat = createChatService({
@@ -222,7 +234,41 @@ export async function startServer(): Promise<void> {
   mkdirSync(dirname(cfg.dbPath), { recursive: true });
   const db = new Database(cfg.dbPath);
   db.pragma("journal_mode = WAL");
-  const { app, llm, relay } = build(db, cfg);
+  const { app, llm, relay } = build(db, cfg, {
+    llmNative: {
+      binExists: (p) => existsSync(p),
+      spawnFn: (file, args, opts) => spawnChild(file, args, opts) as never,
+      execFile: (file, args, cb) =>
+        execFileChild(file, args, (err, stdout, _stderr) => cb(err, String(stdout))) as never,
+      killFn: (pid) => {
+        try {
+          process.kill(pid);
+        } catch {
+          /* best-effort */
+        }
+      },
+      readPidFile: () => {
+        try {
+          const raw = readFileSync(cfg.llmPidFile, "utf8");
+          return JSON.parse(raw) as PidFileRecord;
+        } catch {
+          return null;
+        }
+      },
+      writePidFile: (rec) => {
+        mkdirSync(dirname(cfg.llmPidFile), { recursive: true });
+        writeFileSync(cfg.llmPidFile, JSON.stringify(rec));
+      },
+      removePidFile: () => {
+        try {
+          unlinkSync(cfg.llmPidFile);
+        } catch {
+          /* best-effort */
+        }
+      },
+      fsExists: (p) => existsSync(p),
+    },
+  });
   // Open the shared ComfyUI WS client; progress/executed frames for active
   // runs flow through it into the SSE endpoint (design "Async execution flow").
   relay.connect();

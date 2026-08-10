@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Prompt Studio backend — ComfyUI proxy, converter, LLM runtime, history",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/index.ts"
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.0",

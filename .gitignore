@@ -3,4 +3,5 @@ dist/
 data/
 .env
 *.log
+*.gguf
 .impeccable/critique/

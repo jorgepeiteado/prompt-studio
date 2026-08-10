@@ -71,6 +71,12 @@ DATA_DIR=./data
 > `DATA_DIR` holds the SQLite database and generated images under `data/`.
 > No credentials involved.
 
+> **LLM memory: RAM by default, VRAM optional.** The interview LLM is spawned
+> with `-ngl 0` (all CPU layers), so the GGUF loads into **system RAM**, not
+> VRAM — this leaves the GPU to ComfyUI. Set `LLM_NGL` (e.g. `LLM_NGL=33`) to
+> offload layers to the GPU instead; with a 16 GB card shared with ComfyUI this
+> reduces VRAM headroom. Full explanation: [`LLM_RUNTIME.md`](LLM_RUNTIME.md).
+
 ## Install & run
 
 ```bash
