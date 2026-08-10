@@ -121,4 +121,15 @@ describe("WsRelay dispatch", () => {
     listeners.get("message")?.("not-json{");
     expect(onSse).not.toHaveBeenCalled();
   });
+
+  it("resolves the default WebSocket constructor under ESM (no require)", () => {
+    // Regression: the runtime default previously used `require("ws")`, which
+    // crashes with "ReferenceError: require is not defined" under "type": "module".
+    // Tests always injected WebSocketCtor, so this path was never exercised.
+    const relay = new WsRelay({ url: "ws://127.0.0.1:8188/ws" });
+    const ctor = (relay as unknown as { Ctor: { name?: string } }).Ctor;
+    expect(typeof ctor).toBe("function");
+    // The default must be the real `ws` WebSocket class (constructible shape).
+    expect(ctor?.name).toBe("WebSocket");
+  });
 });

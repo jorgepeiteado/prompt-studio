@@ -9,6 +9,10 @@
  * never open a real socket.
  */
 import type { ComfyImageOutput } from "../services/comfy";
+// ESM-safe default WebSocket: this module runs under "type": "module", so
+// `require` is not available. The `ws` named export is a class usable with
+// `new WebSocket(url)`; tests may still inject WebSocketCtor to avoid sockets.
+import { WebSocket as WsWebSocket } from "ws";
 
 export interface WsMessage {
   type: string;
@@ -82,13 +86,7 @@ export class WsRelay {
 
   constructor(opts: WsRelayOptions) {
     this.url = opts.url;
-    this.Ctor =
-      opts.WebSocketCtor ??
-      (() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { WebSocket } = require("ws") as typeof import("ws");
-        return WebSocket;
-      })();
+    this.Ctor = opts.WebSocketCtor ?? WsWebSocket;
   }
 
   /** Subscribes to prompt_ids and (re)registers the single handler. */
