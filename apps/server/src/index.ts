@@ -98,6 +98,24 @@ function loadTemplate(): ApiWorkflow {
   return JSON.parse(readFileSync(assetPath, "utf8")) as ApiWorkflow;
 }
 
+/**
+ * Resolves the system prompt for chat. The config value is a PATH to the
+ * director prompt file (llm-runtime spec: "MUST read director_fotografico.txt
+ * verbatim as the system prompt"); when it points to an existing file, read
+ * its contents. If the value is not a path (inline text, e.g. in tests), use
+ * it verbatim.
+ */
+function resolveSystemPrompt(pathOrText: string): string {
+  try {
+    if (pathOrText && existsSync(pathOrText)) {
+      return readFileSync(pathOrText, "utf8");
+    }
+  } catch {
+    /* fall through to verbatim */
+  }
+  return pathOrText;
+}
+
 /** Opens the DB, runs migrations, and wires every runtime dependency. */
 export function build(db: Database.Database, cfg: ServerConfig, overrides: BootOverrides = {}): BootResult {
   if (cfg.host !== "127.0.0.1") {
@@ -150,7 +168,7 @@ export function build(db: Database.Database, cfg: ServerConfig, overrides: BootO
 
   const chat = createChatService({
     llmUrl: `http://127.0.0.1:${cfg.llmPort}`,
-    systemPrompt: cfg.llmSystemPrompt,
+    systemPrompt: resolveSystemPrompt(cfg.llmSystemPrompt),
     model: "default",
     fetchFn: (url, init) => fetch(url, init),
   });

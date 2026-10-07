@@ -97,8 +97,12 @@ export function createChatService(deps: ChatServiceDeps): ChatService {
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
+        // llama-server (like the OpenAI API) streams SSE frames prefixed with
+        // "data: ". Strip the prefix; keep raw NDJSON lines working too.
+        const payload = trimmed.startsWith("data:") ? trimmed.slice(5).trim() : trimmed;
+        if (!payload || payload === "[DONE]") continue;
         try {
-          const parsed = JSON.parse(trimmed) as {
+          const parsed = JSON.parse(payload) as {
             choices?: Array<{ delta?: { content?: string }; message?: { content?: string } }>;
           };
           const content = parsed.choices?.[0]?.delta?.content ?? "";

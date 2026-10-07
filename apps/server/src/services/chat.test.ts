@@ -23,6 +23,30 @@ function buildDeps(over: Partial<ChatServiceDeps> = {}): ChatServiceDeps {
 }
 
 describe("chat streaming (llm-runtime / interview-assistant)", () => {
+  it("parses OpenAI-SSE frames (data: prefix + [DONE]) from llama-server", async () => {
+    const fetchFn = vi.fn(async () =>
+      new Response(
+        [
+          "data: " + JSON.stringify({ choices: [{ delta: { role: "assistant", content: null } }] }),
+          "data: " + JSON.stringify({ choices: [{ delta: { content: "Buenas" } }] }),
+          "data: " + JSON.stringify({ choices: [{ delta: { content: " noches" } }] }),
+          "data: " + JSON.stringify({ choices: [{ delta: {} }] }),
+          "data: [DONE]",
+        ].join("\n"),
+        { status: 200, headers: { "Content-Type": "text/event-stream" } },
+      ),
+    );
+    const chat = createChatService(buildDeps({ fetchFn }));
+    const events: ChatStreamEvent[] = [];
+    const result = await chat.stream("sse", "hola", (ev) => events.push(ev));
+    expect(events.filter((e) => e.type === "token")).toEqual([
+      { type: "token", text: "Buenas" },
+      { type: "token", text: " noches" },
+    ]);
+    expect(result.full).toBe("Buenas noches");
+    expect(events.at(-1)).toMatchObject({ type: "done", full: "Buenas noches" });
+  });
+
   it("streams NDJSON deltas as SSE token frames then a done frame with full text", async () => {
     const fetchFn = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = init?.body as string;
